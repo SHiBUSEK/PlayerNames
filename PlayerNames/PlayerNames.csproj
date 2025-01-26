@@ -35,6 +35,9 @@
     <Reference Include="0Harmony">
       <HintPath>..\..\..\..\Downloads\Exiled\EXILED\Plugins\dependencies\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>..\..\..\..\Desktop\Assembly-CSharp.dll</HintPath>
+    </Reference>
     <Reference Include="Exiled.API">
       <HintPath>..\..\..\..\Downloads\Exiled\SCP Secret Laboratory\PluginAPI\plugins\global\dependencies\Exiled.API.dll</HintPath>
     </Reference>
@@ -71,6 +74,12 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="UncomplicatedCustomRoles">
+      <HintPath>..\..\..\..\Desktop\UncomplicatedCustomRoles.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\..\Desktop\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Config.cs" />
