@@ -1,0 +1,1 @@
+PlayerNames is a plugin for the SCP:SL game on the EXILED framework that adds individual names for each player.
