@@ -11,7 +11,7 @@ namespace PlayerNames
     {
         public override string Name => "PlayerNames";
         public override string Author => "Shibusek";
-        public override Version Version => new Version(1, 0, 0);
+        public override Version Version => new Version(1, 0, 1);
 
         private bool _ucrEnabled = false;
         private Type _ucrCustomRoleType;
