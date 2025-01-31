@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Reflection;
 using Exiled.API.Features;
 using Exiled.Events.EventArgs.Player;
-using PlayerRoles; // Required for RoleTypeId
+using PlayerRoles;
 
 namespace PlayerNames
 {
@@ -11,6 +12,10 @@ namespace PlayerNames
         public override string Name => "PlayerNames";
         public override string Author => "Shibusek";
         public override Version Version => new Version(1, 0, 0);
+
+        private bool _ucrEnabled = false;
+        private Type _ucrCustomRoleType;
+        private MethodInfo _ucrGetMethod;
 
         // List of all default SCP:SL roles (as of version 14.0)
         private static readonly RoleTypeId[] DefaultRoles =
@@ -25,14 +30,29 @@ namespace PlayerNames
         public override void OnEnabled()
         {
             Log.Info("Thanks for using PlayerNames by Shibusek");
-            // Registering the ChangingRole event
+
+            // Check if UCR is installed
+            var ucrAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "UncomplicatedCustomRoles");
+
+            if (ucrAssembly != null)
+            {
+                _ucrCustomRoleType = ucrAssembly.GetType("CustomPlayerRoles.CustomRole");
+                _ucrGetMethod = _ucrCustomRoleType?.GetMethod("Get");
+
+                if (_ucrCustomRoleType != null && _ucrGetMethod != null)
+                {
+                    _ucrEnabled = true;
+                    Log.Info("Uncomplicated Custom Roles (UCR) detected! Custom roles will be ignored.");
+                }
+            }
+
             Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
             base.OnEnabled();
         }
 
         public override void OnDisabled()
         {
-            // Unregistering the ChangingRole event
             Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
             base.OnDisabled();
         }
@@ -41,30 +61,49 @@ namespace PlayerNames
         {
             if (!Config.IsEnabled) return;
 
-            var role = ev.NewRole; // The new role being assigned to the player
+            var role = ev.NewRole;
+
             if (Config.Debug)
                 Log.Info($"Changing role for player {ev.Player.Nickname} to {role}");
 
-            // Ignore all custom roles (roles not in DefaultRoles)
-            if (!DefaultRoles.Contains(role))
+            // Check if UCR is enabled
+            if (_ucrEnabled)
+            {
+                object customRole = _ucrGetMethod?.Invoke(null, new object[] { ev.Player });
+                if (customRole != null)
+                {
+                    if (Config.Debug)
+                        Log.Info($"[DEBUG] Player {ev.Player.Nickname} has a UCR role. Skipping name change.");
+                    return;
+                }
+            }
+
+            // ✅ NEW: Check if the player already has a custom display name (set by UCR)
+            if (!string.IsNullOrEmpty(ev.Player.DisplayNickname))
             {
                 if (Config.Debug)
-                    Log.Info($"Role {role} is custom. Ignoring nickname modification.");
+                    Log.Info($"[DEBUG] Player {ev.Player.Nickname} already has a custom name ({ev.Player.DisplayNickname}). Skipping rename.");
                 return;
             }
 
-            // Modify nickname for Class D players if DNumbers is enabled
+            // Ignore non-standard roles
+            if (!DefaultRoles.Contains(role))
+            {
+                if (Config.Debug)
+                    Log.Info($"Role {role} is custom (but not UCR). Ignoring nickname modification.");
+                return;
+            }
+
+            // Assign random D-XXXX number to Class-D if enabled
             if (role == RoleTypeId.ClassD && Config.DNumbers)
             {
-                // Generate a random D-XXXX number
                 ev.Player.DisplayNickname = $"D-{new Random().Next(1000, 9999)}";
             }
             else if (Config.RoleNicknames.ContainsKey(role.ToString()))
             {
-                // Assign a random nickname from the list for the role
                 var nicknames = Config.RoleNicknames[role.ToString()];
                 string randomNickname = nicknames[new Random().Next(nicknames.Count)];
-                ev.Player.DisplayNickname = randomNickname; // Use only the nickname
+                ev.Player.DisplayNickname = randomNickname;
             }
             else
             {
