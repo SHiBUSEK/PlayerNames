@@ -10,7 +10,9 @@ namespace PlayerNames
     {
         public override string Name => "PlayerNames";
         public override string Author => "Shibusek";
-        public override Version Version => new Version(1, 0, 2);
+        public override Version Version => new Version(1, 0, 3);
+
+        private static readonly Random random = new Random();
 
         public override void OnEnabled()
         {
@@ -30,31 +32,35 @@ namespace PlayerNames
             if (!Config.IsEnabled) return;
 
             if (Config.Debug)
-                Log.Info($"Changing role for player {ev.Player.Nickname} to {ev.NewRole}");
+                Log.Info($"[DEBUG] ChangingRole triggered for {ev.Player.Nickname}. Current role: {ev.NewRole}");
 
-            // ✅ If the player already has a custom name, don't change it
-            if (ev.Player.DisplayNickname != ev.Player.Nickname)
+            if (ev.Player.SessionVariables.TryGetValue("PlayerNames_LastRole", out object lastRole) && lastRole.ToString() == ev.NewRole.ToString())
             {
                 if (Config.Debug)
-                    Log.Info($"[DEBUG] Player {ev.Player.Nickname} already has a custom name ({ev.Player.DisplayNickname}). Skipping rename.");
+                    Log.Info($"[DEBUG] Skipping rename for {ev.Player.Nickname}. Role {ev.NewRole} was already processed.");
                 return;
             }
 
-            // Assign random D-XXXX number to Class-D if enabled
+            ev.Player.SessionVariables["PlayerNames_LastRole"] = ev.NewRole.ToString();
+
             if (ev.NewRole == RoleTypeId.ClassD && Config.DNumbers)
             {
-                ev.Player.DisplayNickname = $"D-{new Random().Next(1000, 9999)}";
+                string dNumber = $"D-{random.Next(1000, 9999)}";
+                ev.Player.DisplayNickname = dNumber;
+                if (Config.Debug)
+                    Log.Info($"[DEBUG] Assigned D-Class number: {dNumber} to {ev.Player.Nickname}");
             }
-            else if (Config.RoleNicknames.ContainsKey(ev.NewRole.ToString()))
+            else if (Config.RoleNicknames.TryGetValue(ev.NewRole.ToString(), out var nicknames) && nicknames.Any())
             {
-                var nicknames = Config.RoleNicknames[ev.NewRole.ToString()];
-                string randomNickname = nicknames[new Random().Next(nicknames.Count)];
+                string randomNickname = nicknames[random.Next(nicknames.Count)];
                 ev.Player.DisplayNickname = randomNickname;
+                if (Config.Debug)
+                    Log.Info($"[DEBUG] Assigned random nickname: {randomNickname} to {ev.Player.Nickname}");
             }
             else
             {
                 if (Config.Debug)
-                    Log.Info($"No nickname configuration found for role {ev.NewRole}");
+                    Log.Info($"[DEBUG] No nickname configuration found for role {ev.NewRole}.");
             }
         }
     }
